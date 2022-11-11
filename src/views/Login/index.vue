@@ -2,21 +2,21 @@
 	<div class="loginview">
 		<div class="login-form">
 			<h1 class="login-title">系统登录</h1>
-			<el-input class="login-input" clearable v-model="login.username" placeholder="请输入内容"
-				prefix-icon="el-icon-search">
-			</el-input>
-			<el-input prefix-icon="el-icon-lock" clearable class="login-input" placeholder="请输入密码"
-				v-model="login.password" show-password></el-input>
+			<el-input class="login-input" v-model="login.username" prefix-icon="el-icon-user" placeholder="请输入内容"
+				clearable></el-input>
+			<el-input class="login-input" prefix-icon="el-icon-lock" placeholder="请输入密码" v-model="login.password"
+				show-password clearable></el-input>
 			<div class="v-code">
-				<el-input v-model="login.text" class="login-input v-input" prefix-icon="el-icon-key"
-					placeholder="请输入验证码"></el-input>
-				<img :src="imgsrc" class="v-img" @click="changevcode" />
+				<!-- 验证码 -->
+				<el-input class="login-input v-input" prefix-icon="el-icon-key" placeholder="请输入验证码"
+					v-model="login.text">
+				</el-input>
+				<img :src="imgsrc" class="v-img" @click="changevcode">
 			</div>
-			<el-button type="prima ry" class="login-submit" @click="superlogin">登录</el-button>
+			<el-button type="primary" class="login-submit" @click="logindl">登录</el-button>
 		</div>
 	</div>
 </template>
-
 <script>
 	export default {
 		data() {
@@ -25,11 +25,11 @@
 					username: "",
 					password: "",
 					text: "",
-					uuid: ""
+					uuid: "",
 				},
 				imgsrc: "",
-				time: ""
-			}
+				time: "",
+			};
 		},
 		created() {
 			this.reRender();
@@ -42,61 +42,71 @@
 				this.imgsrc = `http://81.68.121.52:8000/api/generateimagecode?uuid=${uuid}`;
 			},
 			uuid() {
-				return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
-					var r = (Math.random() * 16) | 0,
-						v = c == "x" ? r : (r & 0x3) | 0x8;
-					return v.toString(16)
+				return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+					var r = Math.random() * 16 | 0,
+						v = c == 'x' ? r : (r & 0x3 | 0x8);
+					return v.toString(16);
 				});
 			},
-			intervalRerender() {
-				clearInterval(this.time);
+			intervalRerender() { //定时器，一分钟刷新一次
+				clearInterval(this.time); //清除定时器
 				this.time = setInterval(() => {
 					this.reRender();
-				}, 1000 * 60)
+				}, 1000 * 60);
 			},
 			changevcode() {
 				this.reRender();
 				this.intervalRerender();
+
 			},
-			superlogin() {
+			logindl() { //登录验证
 				this.$http({
-					url: "api/supersignin",
+					url: "api/supersignin", //发post请求
 					method: "POST",
-					data: `username=${this.login.username}&password=${this.login.password}&uuid=${this.login.uuid}&text=${this.login.text}`
+					data: `username=${this.login.username}&password=${this.login.password}&text=${this.login.text}&uuid=${this.login.uuid}`,
 				}).then(res => {
-					if (res.data.status === "error") {
-						this.$message.error(res.data.msg)
+					console.log(res.data);
+					if (res.data.status == "error") {
+						this.$message.error(res.data.msg);
 					} else {
-						//将后端给的Token存起来  方便后期使用  cookie
+						// 将后端的Token存起来 方便后期使用 cookie
 						let date = new Date();
-						console.log(date);
 						date.setHours(date.getHours() + 10);
-						this.$cookie.set('rh_id', res.data.token, { expires: date });
+						this.$cookie.set('rh_id', res.data.token, {
+							expires: date
+						});
 						this.$store.commit('saveToken', res.data.token)
 						this.$message({
 							message: `${res.data.username}-${res.data.msg}`,
-							type: "success"
+							type: 'success',
 						});
-						this.$router.push('/')
-					}
-					this.login.username = "";
-					this.login.password = "";
-					this.login.text = "";
-					this.reRender();
-					this.intervalRerender();
-				}).catch(error => {});
-			}
-		}
-	}
+						this.$router.push('/');
+					};
+					// this.login.username = "";
+					// this.login.password = "";
+					// this.login.text = "";
+					// this.reRender();
+					// this.intervalRerender();
+				}).catch(error => {
+					this.$message.error("登录异常，请稍后重试");
+				});
+				this.login.username = "";
+				this.login.password = "";
+				this.login.text = "";
+				this.reRender();
+				this.intervalRerender();
+			},
+		},
+	};
 </script>
-
 <style>
-	/* .login-input input:focus{   去除高亮
-		border: 1px solid hsla(0, 0%, 100%, .1);  
-	} */
+	.login-input input:focus {
+		border: 1px solid hsla(0, 0%, 100%, .1);
+	}
+
 	.login-input input {
-		/* outline: none; */
 		color: #eee;
+		outline: none;
 		border: 1px solid hsla(0, 0%, 100%, .1);
 		background-color: transparent;
 	}
@@ -105,14 +115,7 @@
 <style scoped>
 	.v-input {
 		width: 50%;
-		margin: 0px !important;
-	}
-
-	.v-code {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: 30px;
+		margin: 0 !important;
 	}
 
 	.v-img {
@@ -120,31 +123,39 @@
 		cursor: pointer;
 	}
 
+	.v-code {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
 	.login-submit {
 		width: 100%;
+		margin-top: 30px;
 	}
 
 	.login-input {
 		margin-bottom: 30px;
 	}
 
-	.loginview {
-		height: inherit;
-		background-color: #2d3a4b;
+	.login-title {
+		font-size: 26px;
+		color: #eee;
+		margin: 0 auto 40px;
+		text-align: center;
+		font-weight: 700;
 	}
 
 	.login-form {
 		margin: 0 auto;
 		width: 450px;
-		height: 200px;
+		height: auto;
 		padding: 160px 35px 0px 35px;
+
 	}
 
-	.login-title {
-		font-size: 26px;
-		color: #eee;
-		margin: 0 auto 40px auto;
-		text-align: center;
-		font-weight: 700;
+	.loginview {
+		height: inherit;
+		background-color: #2d3a4b;
 	}
 </style>
